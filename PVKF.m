@@ -5,7 +5,7 @@ function Y = PVKF(x0,P0,u,z,sigma_h,sigma_v, ...
 %% Detailed explanation goes here
     t = 0;
     i = 0;
-    Q = diag([zeros(3,1);sigma_a^2*ones(3,1)]);
+%     Q = diag([zeros(3,1);1/delta_t*sigma_a^2*ones(3,1)]);
     R = diag([sigma_h^2;sigma_h^2;sigma_v^2;sigma_velocity^2*ones(3,1)]);
     Phi = eye(6);
     Phi(1,4) = delta_t;
@@ -25,12 +25,13 @@ function Y = PVKF(x0,P0,u,z,sigma_h,sigma_v, ...
             x = Phi*x+uk;
         end
         t = t + delta_t;
+        Q = diag([zeros(3,1);t/delta_t*sigma_a^2*ones(3,1)]);
         uk = [zeros(3,1);delta_t*u(1+i*round(delta_t_gps/delta_t),:)'];
         x = Phi*x+uk;
         P = Phi*P*Phi'+Gamma*Q*Gamma';
         K = (H*P*H'+R)\(P*H');
-        x = x+K*(z(1+i,:)'-H*x);
+        x_dot = x+K*(z(1+i,:)'-H*x);
         P = (eye(6)-K*H)*P;
-        Y = [Y;x'];
+        Y = [Y;x_dot'];
     end
 end

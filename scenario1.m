@@ -1,10 +1,9 @@
-    clc
+clc
 clear
 close all
 
 
 %% Parameter Settings
-
 f_imu = 200;              % Sampling frequency of IMU, unit: Hz.
 f_gps = 1;               % Sampling frequency of GPS, unit: Hz.
 
@@ -28,7 +27,7 @@ load("L_Path.mat");
 
 %% Simulated Object Path            
 %% IMU
-sigma_a = sqrt(0.1);        % Standard deviation of accelaration error
+sigma_a = sqrt(0.01);        % Standard deviation of accelaration error
 
 ax_imu = ax;
 ay_imu = ay;
@@ -47,9 +46,6 @@ for i = 2:length(t)
     vx_imu(i) = vx_imu(i-1)+ax_imu(i-1)/f_imu;
     vy_imu(i) = vy_imu(i-1)+ay_imu(i-1)/f_imu;
     vz_imu(i) = vz_imu(i-1)+az_imu(i-1)/f_imu;
-%     vx_imu(i) = vx(i)+normrnd(0,sigma_a*sqrt(t(i)));
-%     vy_imu(i) = vy(i)+normrnd(0,sigma_a*sqrt(t(i)));
-%     vz_imu(i) = vz(i)+normrnd(0,sigma_a*sqrt(t(i)));
     x_imu(i) = x_imu(i-1)+vx_imu(i-1)/f_imu;
     y_imu(i) = y_imu(i-1)+vy_imu(i-1)/f_imu;
     h_imu(i) = h_imu(i-1)+vz_imu(i-1)/f_imu;
@@ -57,18 +53,18 @@ end
     
 
 %% GPS
-sigma_h = 1.6;           % Standard deviation of horizontal error
-sigma_v = 3.0;           % Standard deviation of horizontal error
-sigma_velocity = 0.1;    % Standard deviation of velocity
+sigma_h = 1.6e0;           % Standard deviation of horizontal error
+sigma_v = 3.0e0;           % Standard deviation of horizontal error
+sigma_velocity = 0.1;       % Standard deviation of velocity
 
-vx_gps = [];
-vy_gps = [];
-vz_gps = [];
-x_gps = [];
-y_gps = [];
-h_gps = [];
+vx_gps = [vx(1)];
+vy_gps = [vy(1)];
+vz_gps = [vz(1)];
+x_gps = [x(1)];
+y_gps = [y(1)];
+h_gps = [h(1)];
 
-for i = 1:round(f_imu/f_gps):length(t)
+for i = round(f_imu/f_gps):round(f_imu/f_gps):length(t)
     vx_gps = [vx_gps;vx(i)+normrnd(0,sigma_velocity)];
     vy_gps = [vy_gps;vy(i)+normrnd(0,sigma_velocity)];
     vz_gps = [vz_gps;vz(i)+normrnd(0,sigma_velocity)];
@@ -80,15 +76,20 @@ end
 
 
 %% Direct KF for Position and Velocity Estimation
-
 x0 = [0;0;10;0;0;0];
-P0 = diag(zeros(6,1));
-z = [x_gps,y_gps,h_gps,vx_gps,vy_gps,vz_gps];
-Y = PVKF(x0,P0,[ax_imu,ay_imu,az_imu],z, ...
+P0 = diag(1e0*ones(6,1));
+z_imu = [x_imu,y_imu,h_imu,vx_imu,vy_imu,vz_imu];
+z_gps = [x_gps,y_gps,h_gps,vx_gps,vy_gps,vz_gps];
+Y1 = PVKF(x0,P0,[ax_imu,ay_imu,az_imu],z_gps, ...
         sigma_h,sigma_v,sigma_velocity,sigma_a,1/f_imu,1/f_gps,t(end));
-x_KF = Y(:,1);
-y_KF = Y(:,2);
-h_KF = Y(:,3);
+x_KF = Y1(:,1);
+y_KF = Y1(:,2);
+h_KF = Y1(:,3);
+Y2 = DPVKF(zeros(6,1),P0,z_imu,z_gps, ...
+        sigma_h,sigma_v,sigma_velocity,sigma_a,1/f_imu,1/f_gps,t(end));
+x_DKF = Y2(:,1);
+y_DKF = Y2(:,2);
+h_DKF = Y2(:,3);
 
 
 %% Plot
@@ -102,6 +103,7 @@ grid minor;
 hold on;
 plot3(x_gps,y_gps,h_gps,'o');
 hold on;
-plot3(x_KF,y_KF,h_KF,'x');
-legend('Actual Path','IMU Measurement','GPS Measurement','KF Estimation');
+plot3(x_KF,y_KF,h_KF,'x',x_DKF,y_DKF,h_DKF,'^');
+legend('Actual Path','IMU Measurement','GPS Measurement', ...
+    'KF Estimation','DKF Estimation');
 
