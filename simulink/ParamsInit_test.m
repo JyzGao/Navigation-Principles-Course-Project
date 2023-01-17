@@ -54,8 +54,8 @@ damp_ratio_yaw = 0.85;
 damp_ratio_h = 0.85;
 
 kp_position = 0.1;
-kp_vx = 0.1;
-kp_vy = 0.1;
+kp_vx = 0.25;
+kp_vy = 0.25;
 kp_yaw = omega_n_yaw^2*Izc;
 kp_h = omega_n_h^2*Vehicle.Airframe.mass;
 kp_theta = omega_n_theta^2*Iyc;

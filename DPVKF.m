@@ -34,7 +34,7 @@ function Y = DPVKF(x0,P0,u,z,sigma_h,sigma_v, ...
                  (sigma_velocity^2+a*sigma_a^2)*ones(3,1)]);
         x = Phi*x;
         P = Phi*P*Phi'+Gamma*Q*Gamma';
-        K = (H*P*H'+R)\(P*H');
+        K = (P*H')*inv(H*P*H'+R);
         x = x+K*(dz(1+i,:)'-H*x);
         P = (eye(6)-K*H)*P;
         Y = [Y;u(1+(t/delta_t),:)-x'];
